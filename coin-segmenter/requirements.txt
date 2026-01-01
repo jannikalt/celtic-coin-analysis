@@ -1,0 +1,8 @@
+transformers
+torch
+pillow
+requests
+numpy
+matplotlib
+streamlit
+opencv-python
