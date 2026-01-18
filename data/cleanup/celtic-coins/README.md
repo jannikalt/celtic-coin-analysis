@@ -68,18 +68,18 @@ De-duplication and segmentation:
 Manual modifications after running the OCC cleanup:
 
 - Remove duplicates flagged by the script (from `occ_image_duplicates.csv`), manually resolving cases where only one side is duplicated or a pair is mismatched:
-  - `2250` ↔ `5058` (remove `2250`)
-  - `2251` ↔ `5059` (remove `2251`)
-  - `2252` ↔ `5060` (remove `2252`)
-  - `2254` ↔ `5061` (remove `2254`)
-  - `2255` ↔ `5062` (remove `2255`)
-  - `4777` ↔ `4784` (remove `4784`)
+  - `2250` &lrarr; `5058` (remove `2250`)
+  - `2251` &lrarr; `5059` (remove `2251`)
+  - `2252` &lrarr; `5060` (remove `2252`)
+  - `2254` &lrarr; `5061` (remove `2254`)
+  - `2255` &lrarr; `5062` (remove `2255`)
+  - `4777` &lrarr; `4784` (remove `4784`)
   - `5919` (obv and rev identical; removed)
-  - `6012` ↔ `6014` (remove `6014`)
-  - `4826` ↔ `4825` (remove `4825`)
-  - `5651` ↔ `5663` (remove `5663`)
-  - `5784` ↔ `5790` (remove `5784`)
-  - `5804` ↔ `5817` (remove `5804`)
+  - `6012` &lrarr; `6014` (remove `6014`)
+  - `4826` &lrarr; `4825` (remove `4825`)
+  - `5651` &lrarr; `5663` (remove `5663`)
+  - `5784` &lrarr; `5790` (remove `5784`)
+  - `5804` &lrarr; `5817` (remove `5804`)
 - Manually rate the condition for each side using `{0,1,2}` (GUI tool).
 - Remove items that could not be segmented (from `occ_coin_mask_quality.csv` where `mask_quality = -1`):
   - `4833`, `5119`, `5120`, `5320`, `5423`, `5459`, `5570`, `5622`, `5801`, `5847`, `5916`, `5924`, `5925`, `5928`, `6595`
