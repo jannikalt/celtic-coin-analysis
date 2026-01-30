@@ -23,6 +23,7 @@ from app.ui.visualization import render_visualization
 from app.ui.gallery import render_gallery
 from app.ui.matching_view import render_matches
 from app.ui.retrieval_view import render_retrieval_results
+from app.ui.dataset_view import render_dataset_viewer
 
 # Page Configuration
 st.set_page_config(
@@ -73,7 +74,7 @@ def main():
     # Sidebar Configuration
     config = render_sidebar()
 
-    tab_segmenter, tab_retrieval = st.tabs(["Segmenter", "Retrieval"])
+    tab_segmenter, tab_retrieval, tab_dataset = st.tabs(["Segmenter", "Retrieval", "Dataset Viewer"])
 
     with tab_segmenter:
         st.subheader("Segmentation")
@@ -187,6 +188,10 @@ def main():
                         render_retrieval_results(results_by_coin, retrieval_cfg.get("top_k", 5), display_views)
                     except Exception as e:
                         st.error(f"Retrieval failed: {e}")
+
+    with tab_dataset:
+        dataset_path = retrieval_cfg.get("dataset_path", "")
+        render_dataset_viewer(dataset_path)
 
 if __name__ == "__main__":
     main()

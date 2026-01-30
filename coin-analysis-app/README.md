@@ -1,4 +1,4 @@
-# Celtic Coin Segmenter
+# Celtic Coin Analysis
 
 A modern web application for automatic coin segmentation using the SAM3 model.
 
@@ -9,6 +9,7 @@ A modern web application for automatic coin segmentation using the SAM3 model.
 - **Interactive UI**: Upload images or provide URLs, view results instantly.
 - **Gallery & Download**: View individual cropped coins and download them.
 - **Instance Retrieval**: Find similar coins in your dataset using DINOv3-based similarity search with optional dense patch reranking.
+- **Dataset Viewer**: Browse and explore your coin dataset with interactive label and coin browsing.
 
 ## Installation
 
@@ -84,6 +85,37 @@ coin_002	Type_B	data/coins/002_obv.jpg	data/coins/002_rev.jpg
 ```
 
 **Note**: The retrieval system builds embeddings on-demand using DINOv3. The first run may take some time depending on your dataset size.
+
+### Dataset Viewer Tab
+
+The dataset viewer provides an interactive interface to browse and explore your coin dataset.
+
+#### Setup
+
+1. Specify the dataset path in the sidebar (same path used for retrieval).
+2. Navigate to the **"Dataset Viewer"** tab.
+
+#### Features
+
+**Label Overview:**
+- View all labels in the dataset with the number of coins per label
+- Click on any label to view all coins with that label
+
+**Coin Browser:**
+- Browse all coins for a selected label
+- View obverse and reverse images side-by-side
+- Click on any coin to view detailed metadata
+
+**Coin Details:**
+- View high-resolution obverse and reverse images
+- See all metadata fields from the dataset (ID, label, paths, and any additional columns)
+- Navigate back to the coin list or label overview
+
+This tab is particularly useful for:
+- Exploring the dataset composition and distribution
+- Verifying image paths and data quality
+- Understanding label categories and their contents
+- Inspecting individual coin metadata
 
 ## Project Structure
 
