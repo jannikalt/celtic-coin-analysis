@@ -5,6 +5,7 @@ import io
 import sys
 import os
 from pathlib import Path
+import pandas as pd
 
 # Add the current directory to sys.path to allow imports from app
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -18,6 +19,7 @@ from app.core.segmentation import CoinSegmenter
 from app.core.processing import add_border, overlay_masks, crop_coins
 from app.core.matching import CoinMatcher
 from app.core.retrieval import build_dinov3_retriever_from_dataset
+from app.core.classification import build_classifier_from_checkpoint
 from app.ui.sidebar import render_sidebar
 from app.ui.visualization import render_visualization
 from app.ui.gallery import render_gallery
@@ -27,7 +29,7 @@ from app.ui.dataset_view import render_dataset_viewer
 
 # Page Configuration
 st.set_page_config(
-    page_title="Celtic Coin Segmenter",
+    page_title="Celtic Coin Analysis",
     page_icon="🪙",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -64,7 +66,7 @@ def load_image_from_url(url):
         return None
 
 def main():
-    st.title("Celtic Coin Segmenter")
+    st.title("Celtic Coin Analysis")
     st.markdown("Upload an image or provide a URL to automatically segment coins using SAM3.")
 
     # Initialize Segmenter
@@ -124,8 +126,8 @@ def main():
                     st.warning("No objects detected or model failed to load.")
 
     with tab_retrieval:
-        st.subheader("Instance Retrieval")
-        st.markdown("Provide obverse and/or reverse images for retrieval.")
+        st.subheader("Instance Retrieval & Classification")
+        st.markdown("Provide obverse and/or reverse images for retrieval or classification.")
 
         col_left, col_right = st.columns(2)
         with col_left:
@@ -136,8 +138,73 @@ def main():
         obv_image = Image.open(obv_file).convert("RGB") if obv_file is not None else None
         rev_image = Image.open(rev_file).convert("RGB") if rev_file is not None else None
 
+        # Display uploaded images
+        if obv_image or rev_image:
+            cols = st.columns(2)
+            if obv_image:
+                with cols[0]:
+                    st.image(obv_image, caption="Obverse", width='stretch')
+            if rev_image:
+                with cols[1]:
+                    st.image(rev_image, caption="Reverse", width='stretch')
+
         retrieval_cfg = config.get("retrieval", {})
-        if st.button("Run Retrieval", type="primary"):
+        classification_cfg = config.get("classification", {})
+        
+        # Action buttons
+        col1, col2 = st.columns(2)
+        with col1:
+            run_retrieval = st.button("Run Retrieval", type="primary" if retrieval_cfg.get("enabled") else "secondary")
+        with col2:
+            run_classification = st.button("Run Classification", type="primary" if classification_cfg.get("enabled") else "secondary")
+        
+        # Classification
+        if run_classification:
+            if not classification_cfg.get("enabled"):
+                st.warning("Enable classification in the sidebar first.")
+            elif not classification_cfg.get("model_dir"):
+                st.warning("Specify a model directory in the sidebar.")
+            elif obv_image is None and rev_image is None:
+                st.warning("Please upload at least one image.")
+            else:
+                with st.spinner("Loading classifier..."):
+                    try:
+                        classifier = build_classifier_from_checkpoint(
+                            model_dir=classification_cfg["model_dir"],
+                            device="cuda" if st.session_state.get("use_gpu", True) else "cpu",
+                        )
+                        
+                        with st.spinner("Classifying..."):
+                            result = classifier.predict(obverse=obv_image, reverse=rev_image)
+                            
+                            st.success(f"**Predicted Class:** {result['predicted_class']}")
+                            st.metric("Confidence", f"{result['confidence']:.2%}")
+                            
+                            st.subheader("Top Predictions")
+                            top_probs = list(result["probabilities"].items())
+                            
+                            for class_name, prob in top_probs:
+                                st.progress(prob, text=f"{class_name}: {prob:.2%}")
+                            
+                            with st.expander("View All Class Probabilities"):
+                                import pandas as pd
+                                all_probs = sorted(
+                                    result["all_probabilities"].items(),
+                                    key=lambda x: x[1],
+                                    reverse=True
+                                )
+                                df = pd.DataFrame(all_probs, columns=["Class", "Probability"])
+                                df["Probability"] = df["Probability"].apply(lambda x: f"{x:.4f}")
+                                st.dataframe(df, width='stretch')
+                                
+                    except Exception as e:
+                        st.error(f"Classification failed: {e}")
+                        import traceback
+                        with st.expander("Error details"):
+                            st.code(traceback.format_exc())
+        
+        # Retrieval
+        if run_retrieval:
             if not retrieval_cfg.get("enabled"):
                 st.warning("Enable retrieval in the sidebar first.")
             elif obv_image is None and rev_image is None:

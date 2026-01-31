@@ -48,9 +48,9 @@ The application will open in your default web browser.
 
 ### Retrieval Tab
 
-The retrieval tab allows you to find similar coins in your dataset based on visual similarity.
+The retrieval tab allows you to find similar coins in your dataset based on visual similarity and classify coins using trained models.
 
-#### Setup
+#### Similarity Retrieval Setup
 
 1. Enable retrieval in the sidebar by checking **"Enable Similarity Retrieval"**.
 2. Provide the path to your dataset file (TSV or CSV format) in the **"Dataset TSV/CSV"** field.
@@ -62,13 +62,60 @@ The retrieval tab allows you to find similar coins in your dataset based on visu
    - **Patch Stride**: Stride for patch extraction during reranking (higher = faster but less precise)
    - **Dense Weight**: Weight for combining coarse and dense similarity scores (default: 0.5)
 
-#### Usage
+#### Similarity Retrieval Usage
 
 1. Upload an **obverse image**, **reverse image**, or both.
 2. Click **"Run Retrieval"** to search for similar coins.
 3. View the top-K most similar coins from your dataset with their similarity scores.
 
-#### Dataset Format
+#### Classification
+
+The classification feature allows you to predict coin types using a trained classifier model.
+
+**Training a Classifier:**
+
+First, train a classifier using the coin-classification CLI:
+
+```bash
+python -m coin_classifier.cli \
+    --data "path/to/your/dataset.tsv" \
+    --mode classifier \
+    --views both_concat \
+    --head-type linear \
+    --epochs 30 \
+    --batch-size 16 \
+    --lr 0.001 \
+    --out-dir "classification/runs/my_classifier"
+```
+
+**Using the Classifier in the App:**
+
+1. Enable classification in the sidebar by checking **"Enable Classification"**.
+2. Specify the **Model Directory** path (e.g., `classification/runs/my_classifier`).
+   - This directory must contain: `best_model.pt`, `label_encoder.json`, and `run_config.json`
+3. Upload **obverse** and/or **reverse** images (based on what the model was trained with).
+4. Click **"Run Classification"** to predict the coin type.
+5. View:
+   - Predicted class with confidence
+   - Top-10 most probable classes with probabilities
+   - Full probability distribution (expandable)
+
+**Example Model Directory Structure:**
+```
+classification/runs/my_classifier/
+├── best_model.pt              # Trained model weights
+├── label_encoder.json         # Class label mapping
+├── run_config.json           # Training configuration
+└── confusion_matrix.png      # Training results
+```
+
+**Tips:**
+- The model must match the input views: use `both_concat` for both obverse+reverse, `rev` for reverse only, etc.
+- Higher confidence scores indicate more certain predictions
+- Review top predictions to understand model uncertainty
+- Use `--omit-classes` during training to exclude problematic classes
+
+#### Usage
 
 Your dataset file (TSV or CSV) must contain the following columns:
 

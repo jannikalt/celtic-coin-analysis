@@ -79,7 +79,7 @@ def render_dataset_viewer(dataset_path: str):
                         label = labels[i + j]
                         count = label_counts[label]
                         with col:
-                            if st.button(f"{label}\n({count} coins)", key=f"label_{label}", use_container_width=True):
+                            if st.button(f"{label}\n({count} coins)", key=f"label_{label}", width="stretch"):
                                 st.session_state.selected_label = label
                                 st.session_state.selected_coin_id = None
                                 st.rerun()
@@ -91,7 +91,7 @@ def render_dataset_viewer(dataset_path: str):
             
             col1, col2 = st.columns([1, 5])
             with col1:
-                if st.button("← Back to Labels", use_container_width=True):
+                if st.button("← Back to Labels", width="content"):
                     st.session_state.selected_label = None
                     st.rerun()
             with col2:
@@ -130,7 +130,7 @@ def render_dataset_viewer(dataset_path: str):
                                         st.caption("⚠️ Reverse not found")
                                 
                                 # Button to view details
-                                if st.button(f"View Details", key=f"coin_{coin['id']}", use_container_width=True):
+                                if st.button(f"View Details", key=f"coin_{coin['id']}", width="content"):
                                     st.session_state.selected_coin_id = coin['id']
                                     st.rerun()
         
@@ -149,7 +149,7 @@ def render_dataset_viewer(dataset_path: str):
             
             col1, col2 = st.columns([1, 5])
             with col1:
-                if st.button("← Back to Coins", use_container_width=True):
+                if st.button("← Back to Coins", width="content"):
                     st.session_state.selected_coin_id = None
                     st.rerun()
             with col2:
@@ -187,7 +187,7 @@ def render_dataset_viewer(dataset_path: str):
             metadata_df.columns = ['Value']
             metadata_df.index.name = 'Field'
             
-            st.dataframe(metadata_df, use_container_width=True)
+            st.dataframe(metadata_df, width="content")
             
     except Exception as e:
         st.error(f"Error loading dataset: {e}")

@@ -87,7 +87,69 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--wandb-entity", type=str, default=None, help="W&B entity/team")
     parser.add_argument("--wandb-run-name", type=str, default=None, help="W&B run name")
 
+    parser.add_argument(
+        "--min-class-count",
+        type=int,
+        default=None,
+        help="Minimum samples per class after condition filtering",
+    )
+    parser.add_argument(
+        "--min-class-action",
+        default="remove",
+        choices=["remove", "combine"],
+        help="How to handle classes below --min-class-count",
+    )
+    parser.add_argument(
+        "--min-class-label",
+        default="other",
+        help="Target label when combining small classes",
+    )
+    
+    parser.add_argument("--omit-classes", type=str, default=None, 
+                       help="Comma-separated list of class labels to exclude from dataset (e.g., 'Type_A,Type_B')")
+
     return parser
+
+
+def _filter_omit_classes(df, omit_classes: Optional[str]):
+    """Filter out specified classes from the dataset."""
+    if omit_classes is None or omit_classes.strip() == "":
+        return df
+    
+    classes_to_omit = [c.strip() for c in omit_classes.split(",") if c.strip()]
+    if not classes_to_omit:
+        return df
+    
+    original_count = len(df)
+    df_filtered = df[~df["label"].isin(classes_to_omit)].reset_index(drop=True)
+    omitted_count = original_count - len(df_filtered)
+    
+    if omitted_count > 0:
+        print(f"Omitted {omitted_count} samples from classes: {', '.join(classes_to_omit)}")
+    
+    return df_filtered
+
+
+def _apply_min_class_count(df, min_count: Optional[int], action: str, combined_label: str):
+    """Handle classes below minimum count by removing or combining."""
+    if min_count is None:
+        return df
+    if min_count <= 0:
+        return df
+
+    counts = df["label"].value_counts()
+    small_labels = counts[counts < int(min_count)].index
+    if len(small_labels) == 0:
+        return df
+
+    if action == "remove":
+        return df[~df["label"].isin(small_labels)].reset_index(drop=True)
+    if action == "combine":
+        df = df.copy()
+        df["label"] = df["label"].where(~df["label"].isin(small_labels), combined_label)
+        return df.reset_index(drop=True)
+
+    raise ValueError(f"Unknown min-class-action: {action}")
 
 
 def _filter_by_condition(df, min_condition: Optional[float]):
@@ -206,14 +268,16 @@ def main():
         return
 
     df = load_dataframe(args.data)
+    df = _filter_omit_classes(df, args.omit_classes)
     df = _filter_by_condition(df, args.min_condition)
+    df = _apply_min_class_count(df, args.min_class_count, args.min_class_action, args.min_class_label)
     if args.mode == "metric":
         # Remove labels with fewer than 2 samples for metric learning / knn eval
         counts = df["label"].value_counts()
         keep_labels = counts[counts >= 2].index
         df = df[df["label"].isin(keep_labels)].reset_index(drop=True)
     if len(df) == 0:
-        raise ValueError("No samples remaining after condition filtering")
+        raise ValueError("No samples remaining after filtering")
 
     df_train, df_val = stratified_split(df, val_ratio=args.val_ratio, seed=args.seed)
 

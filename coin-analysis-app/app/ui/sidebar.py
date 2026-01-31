@@ -31,6 +31,14 @@ def render_sidebar():
     rerank_stride = st.sidebar.slider("Patch Stride", 1, 8, 2, 1, help="Higher stride = faster, less precise")
     rerank_weight = st.sidebar.slider("Dense Weight", 0.0, 1.0, 0.5, 0.05, help="Weight for dense rerank score")
 
+    st.sidebar.subheader("Classification")
+    classification_enabled = st.sidebar.checkbox("Enable Classification", value=False)
+    classifier_model_dir = st.sidebar.text_input(
+        "Model Directory",
+        value="",
+        help="Path to trained classifier output directory (containing best_model.pt, label_encoder.json, run_config.json)",
+    )
+
     return {
         "threshold": threshold,
         "mask_threshold": mask_threshold,
@@ -49,5 +57,9 @@ def render_sidebar():
                 "stride": rerank_stride,
                 "weight": rerank_weight,
             },
+        },
+        "classification": {
+            "enabled": classification_enabled,
+            "model_dir": classifier_model_dir.strip(),
         },
     }
