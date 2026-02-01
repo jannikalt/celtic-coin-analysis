@@ -16,11 +16,14 @@ from sklearn.preprocessing import LabelEncoder
 from transformers import AutoImageProcessor
 
 from .data.dataset import load_dataframe, CoinImagesDataset, DinoV3Collator
-from .data.splits import stratified_split
+from .data.side_dataset import CoinSideDataset, DinoV3SideCollator, LABEL_MAPPING
+from .data.splits import stratified_split, uniform_split
 from .models.classifier import DinoV3Classifier
 from .models.metric import MetricEmbeddingModel
+from .models.side_classifier import DinoV3SideClassifier
 from .training.trainer import train_epoch_classifier, eval_classifier, resolve_device
 from .training.metric_trainer import MetricConfig, train_metric_epoch, eval_metric_embeddings
+from .training.side_trainer import train_epoch_side_classifier, eval_side_classifier
 from .losses.arcface import ArcFace
 from .eval.metrics import classification_metrics
 from .eval.plots import save_confusion_matrix, save_high_confidence_mistakes
@@ -55,7 +58,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--val-ratio", type=float, default=0.2)
     parser.add_argument("--min-condition", type=float, default=None, help="Minimum average condition to include")
 
-    parser.add_argument("--mode", default="classifier", choices=["classifier", "metric"])
+    parser.add_argument("--mode", default="classifier", choices=["classifier", "metric", "side-classifier"])
 
     parser.add_argument("--head-type", default="linear", choices=["linear", "mlp"], help="Classifier head type")
     parser.add_argument("--head-hidden", type=int, default=512)
@@ -107,6 +110,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
     
     parser.add_argument("--omit-classes", type=str, default=None, 
                        help="Comma-separated list of class labels to exclude from dataset (e.g., 'Type_A,Type_B')")
+    
+    # Side classifier specific arguments
+    parser.add_argument("--mask-dir", type=str, default=None,
+                       help="Directory containing masks for side classification (default: same dir as images)")
+    parser.add_argument("--disable-mask-pooling", action="store_true",
+                       help="Disable mask-based token pooling for side classification")
 
     return parser
 
@@ -267,6 +276,108 @@ def main():
         _predict_single(args, processor, device)
         return
 
+    # Handle side-classifier mode separately (different data format)
+    if args.mode == "side-classifier":
+        # Load dataframe (can have optional 'label' column, will be ignored)
+        df = load_dataframe(args.data)
+        print(f"Loaded {len(df)} coin pairs for side classification")
+        
+        # Apply same filtering as regular mode if conditions exist
+        df = _filter_omit_classes(df, args.omit_classes) if "label" in df.columns else df
+        df = _filter_by_condition(df, args.min_condition) if args.min_condition else df
+        
+        df_train, df_val = uniform_split(df, val_ratio=args.val_ratio, seed=args.seed)
+        print(f"Train pairs: {len(df_train)}, Val pairs: {len(df_val)}")
+        print(f"Note: Each pair yields 2 training samples (both orders)")
+        
+        train_ds = CoinSideDataset(df_train, input_size=args.input_size, mask_dir=args.mask_dir)
+        val_ds = CoinSideDataset(df_val, input_size=args.input_size, mask_dir=args.mask_dir)
+        
+        collator = DinoV3SideCollator(processor=processor)
+        
+        train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, collate_fn=collator)
+        val_loader = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False, collate_fn=collator)
+        
+        run = _init_wandb(args, vars(args))
+        
+        model = DinoV3SideClassifier(
+            model_name=args.model_name,
+            input_size=args.input_size,
+            mask_pooling=not args.disable_mask_pooling,
+        ).to(device)
+        
+        criterion = torch.nn.CrossEntropyLoss(label_smoothing=0.1)
+        optimizer = torch.optim.AdamW(
+            filter(lambda p: p.requires_grad, model.parameters()),
+            lr=args.lr,
+            weight_decay=args.weight_decay,
+        )
+        
+        best_val_acc = -1.0
+        for epoch in range(1, args.epochs + 1):
+            train_out = train_epoch_side_classifier(model, train_loader, optimizer, criterion, device)
+            val_out = eval_side_classifier(model, val_loader, criterion, device)
+            
+            from sklearn.metrics import accuracy_score, f1_score
+            train_acc = accuracy_score(train_out["y_true"], train_out["y_pred"])
+            train_f1 = f1_score(train_out["y_true"], train_out["y_pred"], average="weighted")
+            val_acc = accuracy_score(val_out["y_true"], val_out["y_pred"])
+            val_f1 = f1_score(val_out["y_true"], val_out["y_pred"], average="weighted")
+            
+            metrics = {
+                "epoch": epoch,
+                "train_loss": train_out["loss"],
+                "train_acc": train_acc,
+                "train_f1_weighted": train_f1,
+                "val_loss": val_out["loss"],
+                "val_acc": val_acc,
+                "val_f1_weighted": val_f1,
+            }
+            
+            save_json(metrics, out_dir / f"metrics_epoch_{epoch}.json")
+            
+            print(f"Epoch {epoch}/{args.epochs} - "
+                  f"train_loss={train_out['loss']:.4f} train_acc={train_acc:.4f} "
+                  f"val_loss={val_out['loss']:.4f} val_acc={val_acc:.4f}")
+            
+            if run is not None:
+                wandb.log(metrics)
+            
+            if val_acc > best_val_acc:
+                best_val_acc = val_acc
+                torch.save(model.state_dict(), out_dir / "best_model.pt")
+                
+                # Save predictions
+                import pandas as pd
+                preds_df = pd.DataFrame({
+                    "id": val_out["ids"],
+                    "flip": val_out["flips"],
+                    "y_true": val_out["y_true"],
+                    "y_pred": val_out["y_pred"],
+                })
+                preds_df.to_csv(out_dir / "predictions_val.tsv", sep="\t", index=False)
+                
+                # Save confusion matrix
+                save_confusion_matrix(
+                    np.array([[np.sum((val_out["y_true"] == 0) & (val_out["y_pred"] == 0)),
+                               np.sum((val_out["y_true"] == 0) & (val_out["y_pred"] == 1))],
+                              [np.sum((val_out["y_true"] == 1) & (val_out["y_pred"] == 0)),
+                               np.sum((val_out["y_true"] == 1) & (val_out["y_pred"] == 1))]]),
+                    ["obv-rev", "rev-obv"],
+                    out_dir / "confusion_matrix.png"
+                )
+        
+        save_json({"label_mapping": LABEL_MAPPING}, out_dir / "label_mapping.json")
+        config = vars(args)
+        save_json(config, out_dir / "run_config.json")
+        
+        if run is not None:
+            run.finish()
+        
+        print(f"Side classification training complete. Best val_acc={best_val_acc:.4f}")
+        return
+
+    # Standard classifier and metric modes
     df = load_dataframe(args.data)
     df = _filter_omit_classes(df, args.omit_classes)
     df = _filter_by_condition(df, args.min_condition)

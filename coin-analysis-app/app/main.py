@@ -20,6 +20,7 @@ from app.core.processing import add_border, overlay_masks, crop_coins
 from app.core.matching import CoinMatcher
 from app.core.retrieval import build_dinov3_retriever_from_dataset
 from app.core.classification import build_classifier_from_checkpoint
+from app.core.side_classification import build_side_classifier_from_checkpoint
 from app.ui.sidebar import render_sidebar
 from app.ui.visualization import render_visualization
 from app.ui.gallery import render_gallery
@@ -75,6 +76,19 @@ def main():
 
     # Sidebar Configuration
     config = render_sidebar()
+    
+    # Load side classifier if enabled
+    side_classifier = None
+    if config["side_classification"]["enabled"] and config["side_classification"]["model_dir"]:
+        try:
+            with st.spinner("Loading side classifier..."):
+                side_classifier = build_side_classifier_from_checkpoint(
+                    config["side_classification"]["model_dir"],
+                    device="cuda"
+                )
+            st.sidebar.success("✓ Side classifier loaded")
+        except Exception as e:
+            st.sidebar.error(f"Failed to load side classifier: {e}")
 
     tab_segmenter, tab_retrieval, tab_dataset = st.tabs(["Segmenter", "Retrieval", "Dataset Viewer"])
 
@@ -118,7 +132,21 @@ def main():
                                 original_image=processed_image,
                                 color_weight=config.get("color_weight", 0.3),
                             )
-                            render_matches(matches, cropped_coins)
+                            render_matches(matches, cropped_coins, cropped_masks, side_classifier)
+                    elif len(cropped_coins) == 2:
+                        # For exactly 2 coins, show them as a pair with side classification
+                        st.info("Found exactly 2 coins - displaying as a pair")
+                        
+                        # Create a dummy match for the pair
+                        matches = [{
+                            'indices': (0, 1),
+                            'score': 0.0,
+                            'edge_score': 0.0,
+                            'color_score': 0.0,
+                            'angle': 0,
+                            'flipped': False
+                        }]
+                        render_matches(matches, cropped_coins, cropped_masks, side_classifier)
 
                     render_visualization(processed_image, annotated_image, len(cropped_coins))
                     render_gallery(cropped_coins, cropped_masks)

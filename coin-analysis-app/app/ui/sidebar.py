@@ -17,6 +17,14 @@ def render_sidebar():
     st.sidebar.subheader("Matching")
     color_weight = st.sidebar.slider("Color Weight", 0.0, 1.0, 0.3, 0.05, help="Weight of color similarity in matching score (vs edge similarity).")
 
+    st.sidebar.subheader("Side Classification")
+    side_classification_enabled = st.sidebar.checkbox("Enable Side Classification", value=False)
+    side_classifier_model_dir = st.sidebar.text_input(
+        "Side Model Directory",
+        value="",
+        help="Path to trained side classifier output directory (containing best_model.pt, run_config.json)",
+    )
+
     st.sidebar.subheader("Retrieval")
     retrieval_enabled = st.sidebar.checkbox("Enable Similarity Retrieval", value=False)
     retrieval_top_k = st.sidebar.slider("Top-K Similar Coins", 1, 20, 5, 1)
@@ -61,5 +69,9 @@ def render_sidebar():
         "classification": {
             "enabled": classification_enabled,
             "model_dir": classifier_model_dir.strip(),
+        },
+        "side_classification": {
+            "enabled": side_classification_enabled,
+            "model_dir": side_classifier_model_dir.strip(),
         },
     }

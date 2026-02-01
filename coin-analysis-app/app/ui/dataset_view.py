@@ -61,6 +61,80 @@ def render_dataset_viewer(dataset_path: str):
         
         st.markdown(f"**Total coins in dataset:** {len(df)}")
         st.markdown(f"**Total labels:** {len(label_counts)}")
+        
+        # Add search by ID
+        st.divider()
+        st.markdown("### Search by ID")
+        search_col1, search_col2 = st.columns([3, 1])
+        with search_col1:
+            search_id = st.text_input("Enter Coin ID", key="search_coin_id", placeholder="e.g., coin_001")
+        with search_col2:
+            st.write("")  # Spacer
+            st.write("")  # Spacer
+            if st.button("Search", type="primary"):
+                if search_id and search_id.strip():
+                    matching_coins = df[df['id'].astype(str).str.contains(search_id.strip(), case=False, na=False)]
+                    if len(matching_coins) > 0:
+                        if len(matching_coins) == 1:
+                            # Go directly to coin details
+                            st.session_state.selected_coin_id = matching_coins.iloc[0]['id']
+                            st.session_state.selected_label = matching_coins.iloc[0]['label']
+                            st.rerun()
+                        else:
+                            # Show matching coins
+                            st.session_state.search_results = matching_coins
+                            st.rerun()
+                    else:
+                        st.warning(f"No coins found matching '{search_id}'")
+        
+        # Show search results if available
+        if 'search_results' in st.session_state and st.session_state.search_results is not None:
+            search_df = st.session_state.search_results
+            st.divider()
+            st.markdown(f"### Search Results ({len(search_df)} coins found)")
+            
+            if st.button("← Clear Search", key="clear_search"):
+                st.session_state.search_results = None
+                st.rerun()
+            
+            # Display found coins in a grid
+            cols_per_row = 4
+            coins = search_df.to_dict('records')
+            
+            for i in range(0, len(coins), cols_per_row):
+                cols = st.columns(cols_per_row)
+                for j, col in enumerate(cols):
+                    if i + j < len(coins):
+                        coin = coins[i + j]
+                        with col:
+                            # Load images
+                            obv_img = _try_load_image(str(coin['obverse_path']))
+                            rev_img = _try_load_image(str(coin['reverse_path']))
+                            
+                            # Display images
+                            with st.container():
+                                img_cols = st.columns(2)
+                                with img_cols[0]:
+                                    if obv_img is not None:
+                                        st.image(obv_img, caption="Obv", width="stretch")
+                                    else:
+                                        st.caption("! Obv")
+                                with img_cols[1]:
+                                    if rev_img is not None:
+                                        st.image(rev_img, caption="Rev", width="stretch")
+                                    else:
+                                        st.caption("! Rev")
+                                
+                                st.caption(f"**{coin['id']}**")
+                                st.caption(f"Label: {coin['label']}")
+                                
+                                if st.button(f"View", key=f"search_coin_{coin['id']}", width="stretch"):
+                                    st.session_state.selected_coin_id = coin['id']
+                                    st.session_state.selected_label = coin['label']
+                                    st.session_state.search_results = None
+                                    st.rerun()
+            return
+        
         st.divider()
         
         # Show label overview if no label is selected

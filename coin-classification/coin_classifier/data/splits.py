@@ -21,3 +21,18 @@ def stratified_split(df: pd.DataFrame, val_ratio: float = 0.2, seed: int = 0):
     df_train = df.loc[train_idx].reset_index(drop=True)
     df_val = df.loc[val_idx].reset_index(drop=True)
     return df_train, df_val
+
+
+def uniform_split(df: pd.DataFrame, val_ratio: float = 0.2, seed: int = 0):
+    """Create a uniform train/val split by ID (for datasets without labels)."""
+    rng = np.random.RandomState(seed)
+    idx = np.arange(len(df))
+    rng.shuffle(idx)
+
+    n_val = max(1, int(val_ratio * len(df)))
+    val_idx = idx[:n_val]
+    train_idx = idx[n_val:]
+
+    df_train = df.iloc[train_idx].reset_index(drop=True)
+    df_val = df.iloc[val_idx].reset_index(drop=True)
+    return df_train, df_val
