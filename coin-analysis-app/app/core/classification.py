@@ -33,7 +33,7 @@ def load_classifier_model(
     if not config_path.exists():
         raise FileNotFoundError(f"run_config.json not found in {model_dir}")
     
-    with open(config_path, "r") as f:
+    with open(config_path, "r", encoding="utf-8") as f:
         run_config = json.load(f)
     
     # Load label encoder
@@ -41,7 +41,7 @@ def load_classifier_model(
     if not le_path.exists():
         raise FileNotFoundError(f"label_encoder.json not found in {model_dir}")
     
-    with open(le_path, "r") as f:
+    with open(le_path, "r", encoding="utf-8") as f:
         le_data = json.load(f)
     
     # Load model checkpoint

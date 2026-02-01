@@ -23,7 +23,7 @@ from .training.trainer import train_epoch_classifier, eval_classifier, resolve_d
 from .training.metric_trainer import MetricConfig, train_metric_epoch, eval_metric_embeddings
 from .losses.arcface import ArcFace
 from .eval.metrics import classification_metrics
-from .eval.plots import save_confusion_matrix
+from .eval.plots import save_confusion_matrix, save_high_confidence_mistakes
 from .eval.knn_eval import knn_evaluate
 from .eval.hdbscan_eval import hdbscan_evaluate
 from .utils.seed import set_seed
@@ -341,6 +341,20 @@ def main():
 
         save_json({"classes": label_encoder.classes_.tolist()}, out_dir / "label_encoder.json")
         save_confusion_matrix(np.array(metrics["confusion_matrix"]), [str(x) for x in label_encoder.classes_], out_dir / "confusion_matrix.png")
+        
+        # Visualize high-confidence misclassifications
+        save_high_confidence_mistakes(
+            df_val,
+            val_out["y_true"],
+            val_out["y_pred"],
+            val_out["probs"],
+            val_out["ids"],
+            [str(x) for x in label_encoder.classes_],
+            out_dir / "high_confidence_mistakes.png",
+            views=args.views,
+            top_k=12,
+            confidence_threshold=0.7,
+        )
 
     else:
         model = MetricEmbeddingModel(

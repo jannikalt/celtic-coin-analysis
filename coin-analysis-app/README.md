@@ -167,7 +167,7 @@ This tab is particularly useful for:
 ## Project Structure
 
 ```
-coin-segmenter/
+coin-analysis-app/
 ├── app/
 │   ├── core/            # Core logic (Segmentation, Processing)
 │   ├── ui/              # UI Components

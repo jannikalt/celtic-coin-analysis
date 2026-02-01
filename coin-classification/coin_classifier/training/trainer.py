@@ -73,6 +73,7 @@ def eval_classifier(model, loader, criterion, device: str) -> Dict:
     all_preds = []
     all_labels = []
     all_ids = []
+    all_probs = []
 
     for batch in tqdm(loader, desc="Val", leave=False):
         labels = batch["labels"].to(device)
@@ -87,12 +88,14 @@ def eval_classifier(model, loader, criterion, device: str) -> Dict:
 
         logits = model(pixel_values_rev=pixel_values_rev, pixel_values_obv=pixel_values_obv)
         loss = criterion(logits, labels)
+        probs = torch.softmax(logits, dim=1).detach().cpu().numpy()
 
         total_loss += float(loss.item())
         preds = logits.argmax(dim=1).detach().cpu().numpy().tolist()
         all_preds.extend(preds)
         all_labels.extend(labels.detach().cpu().numpy().tolist())
         all_ids.extend(ids)
+        all_probs.append(probs)
 
     avg_loss = total_loss / max(1, len(loader))
     return {
@@ -100,6 +103,7 @@ def eval_classifier(model, loader, criterion, device: str) -> Dict:
         "y_true": np.array(all_labels),
         "y_pred": np.array(all_preds),
         "ids": np.array(all_ids),
+        "probs": np.vstack(all_probs),
     }
 
 

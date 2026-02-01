@@ -35,9 +35,9 @@ def render_dataset_viewer(dataset_path: str):
     try:
         # Load the dataset
         if dataset_path.endswith('.csv'):
-            df = pd.read_csv(dataset_path)
+            df = pd.read_csv(dataset_path, encoding='utf-8')
         elif dataset_path.endswith('.tsv'):
-            df = pd.read_csv(dataset_path, sep='\t')
+            df = pd.read_csv(dataset_path, sep='\t', encoding='utf-8')
         else:
             st.error("Dataset must be a CSV or TSV file.")
             return
