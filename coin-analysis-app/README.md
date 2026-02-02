@@ -118,8 +118,8 @@ The side classifier uses DINOv3 with token-mask encoding to learn which side is 
 classification/runs/side_classifier/
 ├── best_model.pt              # Trained model weights
 ├── label_mapping.json         # Side order mapping
-├── run_config.json           # Training configuration
-└── confusion_matrix.png      # Training results
+├── run_config.json            # Training configuration
+└── confusion_matrix.png       # Training results
 ```
 
 ### Retrieval Tab
@@ -181,8 +181,8 @@ python -m coin_classifier.cli \
 classification/runs/my_classifier/
 ├── best_model.pt              # Trained model weights
 ├── label_encoder.json         # Class label mapping
-├── run_config.json           # Training configuration
-└── confusion_matrix.png      # Training results
+├── run_config.json            # Training configuration
+└── confusion_matrix.png       # Training results
 ```
 
 **Tips:**

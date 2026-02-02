@@ -86,7 +86,7 @@ Manual modifications after running the OCC cleanup:
 - Remove items that could not be segmented (from `occ_coin_mask_quality.csv` where `mask_quality = -1`):
   - `4833`, `5119`, `5120`, `5320`, `5423`, `5459`, `5570`, `5622`, `5801`, `5847`, `5916`, `5924`, `5925`, `5928`, `6595`
 
-Implementation reference: the OCC cleanup logic lives in [data/cleanup/occ/clean_occ_csv.py](../occ/clean_occ_csv.py).
+Implementation reference: the OCC cleanup logic lives in [data/cleanup/occ/clean_occ_csv.py](cleanup/occ/clean_occ_csv.py).
 
 ### 2) Cleaning up the Coinarchives dataset
 
@@ -138,13 +138,13 @@ Manual modifications after running the Coinarchives cleanup:
 5. Run the side-classification network and correct misclassifications after a brief manual check:
    - `1994868`, `2444068`, `2543766`, `2545993`
 
-Implementation reference: the Coinarchives cleanup logic lives in [data/cleanup/coinarchives/clean_coinarchives_csv.py](../coinarchives/clean_coinarchives_csv.py).
+Implementation reference: the Coinarchives cleanup logic lives in [data/cleanup/coinarchives/clean_coinarchives_csv.py](cleanup/coinarchives/clean_coinarchives_csv.py).
 
 ### 3) Merging both cleaned datasets
 
 After both datasets are cleaned and standardized to the same schema (including image files and masks), they are combined into a single merged table.
 
-Implementation reference: [data/cleanup/merge_datasets.py](../merge_datasets.py).
+Implementation reference: [data/cleanup/merge_datasets.py](cleanup/merge_datasets.py).
 
 ## Columns (schema)
 
