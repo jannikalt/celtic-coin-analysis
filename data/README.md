@@ -1,6 +1,8 @@
 # Celtic Coins - merged dataset - Die Muenze 44
 
-This folder contains a merged metadata table for Celtic coin images (obverse/reverse) from the *occ* and *coinarchives* dataset plus a **manual 3-level condition rating per side**.
+This folder contains scripts for building a merged metadata table for Celtic coin images (obverse/reverse) from the *occ* and *coinarchives* dataset plus a **manual 3-level condition rating per side**.
+
+This documentation describes the process of merging the datasets in full detail.
 
 ## Files
 

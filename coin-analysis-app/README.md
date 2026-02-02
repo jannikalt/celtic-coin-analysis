@@ -4,7 +4,7 @@ A modern web application for automatic coin segmentation using the SAM3 model.
 
 ## Features
 
-- **Automatic Segmentation**: Uses Facebook's SAM3 model to detect and segment coins.
+- **Automatic Segmentation**: Uses Meta's SAM3 model to detect and segment coins.
 - **Configurable Parameters**: Adjust segmentation thresholds, mask thresholds, and border settings.
 - **Interactive UI**: Upload images or provide URLs, view results instantly.
 - **Gallery & Download**: View individual cropped coins and download them.
@@ -44,7 +44,83 @@ The application will open in your default web browser.
 
 1. **Upload or provide URL**: Choose an image containing coins.
 2. **Adjust parameters**: Use the sidebar to fine-tune segmentation and matching settings.
-3. **View results**: See segmented coins, matching pairs (if 3+ coins detected), and download individual crops.
+3. **View results**: See segmented coins, matching pairs (if 3+ coins detected), their predicted sides, and download individual crops.
+
+#### Segmentation Parameters
+
+Fine-tune the SAM3 segmentation and processing behavior using these sidebar controls:
+
+**Segmentation:**
+- **Threshold**: Confidence threshold for segmentation (default: 0.5, range: 0.0-1.0)
+  - Higher values = more confident detections only
+- **Mask Threshold**: Binarization threshold for masks (default: 0.45, range: 0.0-1.0)
+  - Adjust if masks appear too large or too small
+
+**Image Pre-processing:**
+- **Border Width**: Width of border to add around the image (default: 200px, range: 0-500)
+  - Helps detect coins near image edges
+- **Border Fill Color**: Color of the added border (default: white)
+  - Use color picker to adjust
+
+**Cropping:**
+- **Crop Padding (px)**: Padding around detected objects when cropping (default: 10px, range: 0-100)
+  - Adds margin around each cropped coin
+
+#### Coin matching
+
+To allow processing images which contain the obverse and reverse sides of more than one coin in an image a coin matching algorithm is employed:
+
+1. Preprocesses masks (center & resize).
+    - Masks are cropped to their bounding box, resized to 128x128, and centered to ensure fair comparison.
+2. Extracts the edges.
+3. Compares edges by rotating (0-360°) and flipping.
+    - The `get_best_rotation_match` method rotates one mask in 10-degree steps (0-360) and calculates the Intersection over Union (IoU) with the other mask.
+4. Selects the best matches based on the edge overlap (IoU) and the mean color of the coin.
+    - It calculates pairwise scores for all detected coins. It then greedily selects the best matches (highest score) until coins are exhausted.
+
+**Matching Parameters:**
+- **Color Weight**: Weight of color similarity in matching score vs edge similarity (default: 0.3, range: 0.0-1.0)
+  - Higher values = more emphasis on color matching
+  - Lower values = more emphasis on edge/shape matching
+
+#### Side classification
+
+The side classification feature predicts which detected coin side is obverse vs. reverse and is performed on the matched pairs.
+
+**Training a Side Classifier:**
+
+First, train a side classifier using the coin-classification CLI:
+
+```bash
+python -m coin_classifier.cli \
+    --mode side-classifier \
+    --data "path/to/your/dataset.tsv" \
+    --out-dir "classification/runs/side_classifier" \
+    --epochs 10 \
+    --wandb
+```
+
+The side classifier uses DINOv3 with token-mask encoding to learn which side is obverse vs. reverse. Each coin pair generates two training samples (original and flipped order).
+
+**Using the Side Classifier in the App:**
+
+1. Enable side classification in the sidebar by checking **"Enable Side Classification"**.
+2. Specify the **Side Classifier Model Directory** path (e.g., `classification/runs/side_classifier`).
+   - This directory must contain: `best_model.pt`, `label_mapping.json`, and `run_config.json`
+3. Upload an image and run segmentation.
+4. When 2+ coins are detected, the app will:
+   - Match coins into pairs
+   - Predict the side order for each pair ("obv-rev" or "rev-obv")
+   - Display predictions with confidence scores
+
+**Example Side Classifier Directory Structure:**
+```
+classification/runs/side_classifier/
+├── best_model.pt              # Trained model weights
+├── label_mapping.json         # Side order mapping
+├── run_config.json           # Training configuration
+└── confusion_matrix.png      # Training results
+```
 
 ### Retrieval Tab
 
@@ -112,7 +188,6 @@ classification/runs/my_classifier/
 **Tips:**
 - The model must match the input views: use `both_concat` for both obverse+reverse, `rev` for reverse only, etc.
 - Higher confidence scores indicate more certain predictions
-- Review top predictions to understand model uncertainty
 - Use `--omit-classes` during training to exclude problematic classes
 
 #### Usage
@@ -127,8 +202,8 @@ Your dataset file (TSV or CSV) must contain the following columns:
 Example:
 ```tsv
 id	label	obverse_path	reverse_path
-coin_001	Type_A	data/coins/001_obv.jpg	data/coins/001_rev.jpg
-coin_002	Type_B	data/coins/002_obv.jpg	data/coins/002_rev.jpg
+001	Type_A	data/obv/001.jpg	data/rev/001.jpg
+002	Type_B	data/obv/002.jpg	data/rev/002.jpg
 ```
 
 **Note**: The retrieval system builds embeddings on-demand using DINOv3. The first run may take some time depending on your dataset size.
@@ -176,13 +251,3 @@ coin-analysis-app/
 ├── requirements.txt     # Python dependencies
 └── README.md            # Documentation
 ```
-
-## Coin matching
-
-1. Preprocesses masks (center & resize).
-    - Masks are cropped to their bounding box, resized to 128x128, and centered to ensure fair comparison.
-2. Extracts the edges.
-3. Compares edges by rotating (0-360°) and flipping.
-    - The `get_best_rotation_match` method rotates one mask in 10-degree steps (0-360) and calculates the Intersection over Union (IoU) with the other mask.
-4. Selects the best matches based on the edge overlap (IoU).
-    - It calculates pairwise scores for all detected coins. It then greedily selects the best matches (highest IoU) until coins are exhausted.

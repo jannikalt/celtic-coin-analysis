@@ -79,23 +79,42 @@ python -m coin_classifier.cli --mode side-classifier --data path/to/data.tsv --o
 
 The side classifier predicts whether a coin pair is in "obv-rev" or "rev-obv" order using token-mask encoding with DINOv3. Each coin pair generates two training samples (original and flipped order). The same dataset format is used as regular classification.
 
-Single-image prediction (classifier head):
- (for classifier/metric modes)
+### **Best Configurations**
+
+Using the merged dataset as input the following run configurations resulted in the best overall performance.
+
+Coin classification:
+
+```bash
+python -m coin_classifier.cli --data path/to/data.tsv --epochs 30 --batch-size 16 --lr 0.001 --mode classifier --eval-method none --wandb --out-dir runs/side_classifier --views both_concat --head-type linear --omit-classes "Small silver uncertain type" --min-condition 0.4
+```
+
+- Validation F1-score: **0.7076**
+- Validation accuracy: **74.48%**
+
+Side classification:
+
+```bash
+python -m coin_classifier.cli --mode side-classifier --data path/to/data.tsv --out-dir runs/side_classifier --epochs 10 --wandb
+```
+
+- Validation accuracy: **95.6%**
+- Training accuracy: **100%**
+
+## Key CLI options
+- `--views`: `rev`, `obv`, `both_avg`, `both_concat`
 - `--mode`: `classifier`, `metric`, or `side-classifier`
 - `--embedding-dim`: output dimension for metric embeddings
 - `--eval-method`: `none`, `knn`, `hdbscan` (for metric mode)
 - `--min-condition`: only include samples with average condition above this value
 - `--head-type`: `linear` or `mlp` (classifier head)
 - `--proj-type`: `linear` or `mlp` (metric head)
-- `--disable-mask-pooling`: disable mask-weighted pooling (side-classifier mode
-## Key CLI options
-- `--views`: `rev`, `obv`, `both_avg`, `both_concat`
-- `--mode`: `classifier` or `metric`
-- `--embedding-dim`: output dimension for metric embeddings
-- `--eval-method`: `none`, `knn`, `hdbscan`
-- `--min-condition`: only include samples with average condition above this value
-- `--head-type`: `linear` or `mlp` (classifier head)
-- `--proj-type`: `linear` or `mlp` (metric head)
+- `--disable-mask-pooling`: disable mask-weighted pooling (side-classifier mode)
+
+To see the full list of arguments run
+```bash
+python -m coin_classifier.cli --help
+```
 
 ## Outputs
 - `run_config.json`: full CLI config (classifier mode)

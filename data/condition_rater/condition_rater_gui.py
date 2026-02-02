@@ -1,3 +1,8 @@
+"""
+GUI application for rating coin conditions from a CSV file.
+Allows loading a CSV with coin metadata, displaying images and masks, and saving updated condition ratings.
+"""
+
 import csv
 import os
 import shutil
