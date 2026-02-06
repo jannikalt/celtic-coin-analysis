@@ -67,7 +67,7 @@ def render_dataset_viewer(dataset_path: str):
         st.markdown("### Search by ID")
         search_col1, search_col2 = st.columns([3, 1])
         with search_col1:
-            search_id = st.text_input("Enter Coin ID", key="search_coin_id", placeholder="e.g., coin_001")
+            search_id = st.text_input("Enter Coin ID", key="search_coin_id", placeholder="e.g., 5432")
         with search_col2:
             st.write("")  # Spacer
             st.write("")  # Spacer

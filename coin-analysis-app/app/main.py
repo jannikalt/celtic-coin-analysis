@@ -86,7 +86,6 @@ def main():
                     config["side_classification"]["model_dir"],
                     device="cuda"
                 )
-            st.sidebar.success("✓ Side classifier loaded")
         except Exception as e:
             st.sidebar.error(f"Failed to load side classifier: {e}")
 

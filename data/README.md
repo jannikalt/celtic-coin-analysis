@@ -24,9 +24,9 @@ Each row represents one coin record.
   - These values were **assigned manually**.
   - Treat the rating as a **coarse image/coin-side quality score** (higher generally means “better / more usable”).
 
-## Merging process (how this dataset was created)
+## Merging process (how the dataset was created)
 
-This dataset was created by cleaning the two source datasets (OCC and Coinarchives), standardizing their metadata schema, generating per-image coin masks, and finally merging everything into a single table.
+The dataset was created by cleaning the two source datasets (OCC and Coinarchives), standardizing their metadata schema, generating per-image coin masks, and finally merging everything into a single table.
 
 ### 1) Cleaning up the OCC dataset
 

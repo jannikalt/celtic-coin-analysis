@@ -85,6 +85,14 @@ See individual component `requirements.txt` files for complete dependencies.
 - **Retrieval**: Cosine similarity on DINOv3 embeddings
 - **Matching**: IoU-based edge similarity with rotation search
 
+## Authors
+
+This project was developed as part of a Computer Science module by:
+
+- [Malaz Al-Mahdi](https://github.com/Malaz-al-Mahdi)
+- [Jannik Alt](https://github.com/jannikalt)
+- Mu Li
+
 ## License
 
 [MIT License](LICENSE)
