@@ -1,5 +1,6 @@
 torch
-transformers
+torchvision
+transformers==5.0.0rc1
 numpy
 pandas
 scikit-learn

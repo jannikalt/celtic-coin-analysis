@@ -1,5 +1,6 @@
-transformers
+transformers==5.0.0rc1
 torch
+torchvision
 pillow
 requests
 numpy
